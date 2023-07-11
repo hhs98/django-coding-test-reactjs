@@ -1,5 +1,6 @@
 from django.views import generic
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.db.models import Subquery, OuterRef, Q
 from product.models import (
     Variant,
     Product,
@@ -26,7 +27,31 @@ class ProductListView(generic.TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         products = Product.objects.all()
-        print(len(products))
+        title = self.request.GET.get('title')
+        variant = self.request.GET.getlist('variant')
+        price_from = self.request.GET.get('price_from')
+        price_to = self.request.GET.get('price_to')
+        date = self.request.GET.get('date')
+        if title:
+            products = products.filter(title__icontains=title)
+        if variant:
+            filtered_variants = ProductVariant.objects.filter(
+                variant_title__in=variant,
+                product=OuterRef('pk'),
+            ).values('product')
+            products = products.filter(Q(pk__in=Subquery(filtered_variants)))
+
+        if price_from and price_to:
+            filtered_variants = ProductVariantPrice.objects.filter(
+                price__gte=price_from,
+                price__lte=price_to,
+                product=OuterRef('pk'),
+            ).values('product')
+            products = products.filter(Q(pk__in=Subquery(filtered_variants)))
+
+        if date:
+            products = products.filter(created_at__date=date)
+
         page = self.request.GET.get('page')
         paginator = Paginator(products, self.paginate_by)
         try:
@@ -38,4 +63,16 @@ class ProductListView(generic.TemplateView):
         context['product'] = True
         context['products'] = products
         context['paginator'] = paginator
+
+        variants = Variant.objects.filter(active=True).values('id', 'title')
+
+        for variant in variants:
+            variant['variants'] = (
+                ProductVariant.objects.filter(variant_id=variant['id'])
+                .values('variant_title')
+                .distinct()
+            )
+
+        context['variants'] = variants
+        context['selected_variants'] = self.request.GET.getlist('variant')
         return context

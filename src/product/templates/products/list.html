@@ -13,12 +13,18 @@
         <form action="" method="get" class="card-header">
             <div class="form-row justify-content-between">
                 <div class="col-md-2">
-                    <input type="text" name="title" placeholder="Product Title" class="form-control">
+                    <input value="{{ request.GET.title }}" type="text" name="title" placeholder="Product Title" class="form-control">
                 </div>
                 <div class="col-md-2">
-                    <select name="variant" id="" class="form-control">
-                        <option selected disabled>--Select A Variant--</option>
-
+                    <select name="variant" id="" class="form-control" multiple="multiple">
+                        {% for variant in variants %}
+                        <option disabled>--Select A Variant--</option>
+                        <optgroup label="{{ variant.title }}">
+                            {% for variant_value in variant.variants.all %}
+                            <option {% if variant_value.variant_title in selected_variants %}selected{% endif %} value="{{ variant_value.variant_title }}">{{ variant_value.variant_title }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endfor %}
                     </select>
                 </div>
 
@@ -27,13 +33,13 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">Price Range</span>
                         </div>
-                        <input type="text" name="price_from" aria-label="First name" placeholder="From"
+                        <input value="{{ request.GET.price_from }}" type="text" name="price_from" aria-label="First name" placeholder="From"
                                class="form-control">
-                        <input type="text" name="price_to" aria-label="Last name" placeholder="To" class="form-control">
+                        <input value="{{ request.GET.price_to }}" type="text" name="price_to" aria-label="Last name" placeholder="To" class="form-control">
                     </div>
                 </div>
                 <div class="col-md-2">
-                    <input type="date" name="date" placeholder="Date" class="form-control">
+                    <input value="{{ request.GET.date }}" type="date" name="date" placeholder="Date" class="form-control">
                 </div>
                 <div class="col-md-1">
                     <button type="submit" class="btn btn-primary float-right"><i class="fa fa-search"></i></button>
@@ -125,3 +131,14 @@
         </div>
     </div>
 {% endblock %}
+{% block script %}
+<script>
+    $(document).ready(function () {
+        $('select').select2({
+            multiple: true,
+            placeholder: 'Select A Variant',
+            allowClear: true
+        });  
+    });
+</script>
+{% endblock  %}
