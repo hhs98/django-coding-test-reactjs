@@ -105,17 +105,38 @@ const CreateProduct = (props) => {
 
         const url = props.product == undefined ? '/product/create/' : '/product/edit/' + product.id + '/'
 
+        if (title == '' || sku == '' || description == '') {
+            alert('Please complete the form')
+            return false
+        }
+
+        if (productVariants.length > 0) {
+            let flag = false;
+            productVariants.forEach(item => {
+                if (item.tags.length == 0) {
+                    alert('Please add variant tags')
+                    flag = true
+                }
+            })
+
+            if (flag) {
+                return false
+            }
+        }
+
         axios.post(url, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
                 'X-CSRFToken': Cookies.get('csrftoken')
             },
         }).then(response => {
-            console.log(response)
+            // show toast 
+            alert(response.data.status)
+            if (response.data.status == 'success') {
+                window.location.reload()
+            }
         }, error => {
             console.log(error)
-        }, () => {
-            console.log('request completed')
         })
     }
 
