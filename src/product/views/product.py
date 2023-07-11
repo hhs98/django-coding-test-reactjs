@@ -1,3 +1,5 @@
+import json
+from django.http import JsonResponse
 from django.views import generic
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Subquery, OuterRef, Q
@@ -6,6 +8,7 @@ from product.models import (
     Product,
     ProductVariant,
     ProductVariantPrice,
+    ProductImage,
 )
 
 
@@ -18,6 +21,69 @@ class CreateProductView(generic.TemplateView):
         context['product'] = True
         context['variants'] = list(variants.all())
         return context
+
+    def post(self, request, *args, **kwargs):
+        title = request.POST.get('title')
+        sku = request.POST.get('sku')
+        description = request.POST.get('description')
+
+        product_variants = json.loads(request.POST.get('product_variants'))
+        product_variant_prices = json.loads(
+            request.POST.get('product_variant_prices')
+        )
+        product_images = json.loads(request.POST.get('product_images'))
+
+        product = Product.objects.create(
+            title=title, sku=sku, description=description
+        )
+
+        for product_variant in product_variants:
+            variant = Variant.objects.get(id=product_variant['option'])
+            for tag in product_variant['tags']:
+                ProductVariant.objects.create(
+                    variant_title=tag,
+                    variant=variant,
+                    product=product,
+                )
+
+        for product_variant_price in product_variant_prices:
+            product_variant_one = None
+            product_variant_two = None
+            product_variant_three = None
+
+            variant_titles = product_variant_price['title'].split('/')
+            print(variant_titles)
+            if len(variant_titles) > 0 and variant_titles[0] != '':
+                product_variant_one = ProductVariant.objects.get(
+                    variant_title=variant_titles[0],
+                    product=product,
+                )
+            if len(variant_titles) > 1 and variant_titles[1] != '':
+                product_variant_two = ProductVariant.objects.get(
+                    variant_title=variant_titles[1],
+                    product=product,
+                )
+            if len(variant_titles) > 2 and variant_titles[2] != '':
+                product_variant_three = ProductVariant.objects.get(
+                    variant_title=variant_titles[2],
+                    product=product,
+                )
+
+            ProductVariantPrice.objects.create(
+                product_variant_one=product_variant_one,
+                product_variant_two=product_variant_two,
+                product_variant_three=product_variant_three,
+                price=product_variant_price['price'],
+                stock=product_variant_price['stock'],
+                product=product,
+            )
+
+        for product_image in product_images:
+            ProductImage.objects.create(
+                product=product, file_path=product_image['path']
+            )
+
+        return JsonResponse({'status': 'success'})
 
 
 class ProductListView(generic.TemplateView):

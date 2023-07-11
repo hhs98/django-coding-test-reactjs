@@ -2,18 +2,22 @@ import React, {useState} from 'react';
 import TagsInput from 'react-tagsinput';
 import 'react-tagsinput/react-tagsinput.css';
 import Dropzone from 'react-dropzone'
+import axios from 'axios'
+import Cookies from 'js-cookie'
 
 
 const CreateProduct = (props) => {
-
+    const [title, setTitle] = useState('')
+    const [sku, setSku] = useState('')
+    const [description, setDescription] = useState('')
     const [productVariantPrices, setProductVariantPrices] = useState([])
-
     const [productVariants, setProductVariant] = useState([
         {
             option: 1,
             tags: []
         }
     ])
+    const [uploadFiles, setUploadFiles] = useState([])
     console.log(typeof props.variants)
     // handle click event of the Add button
     const handleAddClick = () => {
@@ -77,7 +81,28 @@ const CreateProduct = (props) => {
     // Save product
     let saveProduct = (event) => {
         event.preventDefault();
-        // TODO : write your code here to save the product
+        let formData = new FormData();
+
+        formData.append('title', title)
+        formData.append('sku', sku)
+        formData.append('description', description)
+
+        formData.append('product_variants', JSON.stringify(productVariants))
+        formData.append('product_variant_prices', JSON.stringify(productVariantPrices))
+        formData.append('product_images', JSON.stringify(uploadFiles))
+
+        axios.post('/product/create/', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                'X-CSRFToken': Cookies.get('csrftoken')
+            },
+        }).then(response => {
+            console.log(response)
+        }, error => {
+            console.log(error)
+        }, () => {
+            console.log('request completed')
+        })
     }
 
 
@@ -90,15 +115,15 @@ const CreateProduct = (props) => {
                             <div className="card-body">
                                 <div className="form-group">
                                     <label htmlFor="">Product Name</label>
-                                    <input type="text" placeholder="Product Name" className="form-control"/>
+                                    <input value={title} onChange={(e)=> setTitle(e.target.value)} type="text" placeholder="Product Name" className="form-control"/>
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="">Product SKU</label>
-                                    <input type="text" placeholder="Product Name" className="form-control"/>
+                                    <input value={sku} onChange={(e)=> setSku(e.target.value)} type="text" placeholder="Product SKU" className="form-control"/>
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="">Description</label>
-                                    <textarea id="" cols="30" rows="4" className="form-control"></textarea>
+                                    <textarea value={description} onChange={(e)=> setDescription(e.target.value)} id="" cols="30" rows="4" className="form-control"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -109,7 +134,7 @@ const CreateProduct = (props) => {
                                 <h6 className="m-0 font-weight-bold text-primary">Media</h6>
                             </div>
                             <div className="card-body border">
-                                <Dropzone onDrop={acceptedFiles => console.log(acceptedFiles)}>
+                                <Dropzone onDrop={acceptedFiles => setUploadFiles(acceptedFiles)}>
                                     {({getRootProps, getInputProps}) => (
                                         <section>
                                             <div {...getRootProps()}>
