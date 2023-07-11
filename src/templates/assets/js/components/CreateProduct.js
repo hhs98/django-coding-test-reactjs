@@ -7,18 +7,30 @@ import Cookies from 'js-cookie'
 
 
 const CreateProduct = (props) => {
-    const [title, setTitle] = useState('')
-    const [sku, setSku] = useState('')
-    const [description, setDescription] = useState('')
-    const [productVariantPrices, setProductVariantPrices] = useState([])
-    const [productVariants, setProductVariant] = useState([
-        {
-            option: 1,
-            tags: []
+    let product = props.product
+    if (props.product == undefined) {
+        product = {
+            title: '',
+            sku: '',
+            description: '',
+            product_variant_prices: [],
+            product_variants: [
+                {
+                    option: 1,
+                    tags: []
+                }
+            ]
         }
-    ])
+    } else {
+        product = JSON.parse(props.product.replaceAll("'", '"'))
+    }
+    const [title, setTitle] = useState(product.title)
+    const [sku, setSku] = useState(product.sku)
+    const [description, setDescription] = useState(product.description)
+    const [productVariantPrices, setProductVariantPrices] = useState(product.product_variant_prices)
+    const [productVariants, setProductVariant] = useState(product.product_variants)
     const [uploadFiles, setUploadFiles] = useState([])
-    console.log(typeof props.variants)
+    // console.log(typeof props.variants)
     // handle click event of the Add button
     const handleAddClick = () => {
         let all_variants = JSON.parse(props.variants.replaceAll("'", '"')).map(el => el.id)
@@ -91,7 +103,9 @@ const CreateProduct = (props) => {
         formData.append('product_variant_prices', JSON.stringify(productVariantPrices))
         formData.append('product_images', JSON.stringify(uploadFiles))
 
-        axios.post('/product/create/', formData, {
+        const url = props.product == undefined ? '/product/create/' : '/product/edit/' + product.id + '/'
+
+        axios.post(url, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
                 'X-CSRFToken': Cookies.get('csrftoken')
@@ -223,14 +237,41 @@ const CreateProduct = (props) => {
                                         <tbody>
                                         {
                                             productVariantPrices.map((productVariantPrice, index) => {
+                                                const handlePriceChange = (e) => {
+                                                  const updatedPrices = [...productVariantPrices];
+                                                  updatedPrices[index].price = e.target.value;
+                                                  setProductVariantPrices(updatedPrices);
+                                                };
+                                              
+                                                const handleStockChange = (e) => {
+                                                  const updatedPrices = [...productVariantPrices];
+                                                  updatedPrices[index].stock = e.target.value;
+                                                  setProductVariantPrices(updatedPrices);
+                                                };
+                                              
                                                 return (
-                                                    <tr key={index}>
-                                                        <td>{productVariantPrice.title}</td>
-                                                        <td><input className="form-control" type="text"/></td>
-                                                        <td><input className="form-control" type="text"/></td>
-                                                    </tr>
-                                                )
-                                            })
+                                                  <tr key={index}>
+                                                    <td>{productVariantPrice.title}</td>
+                                                    <td>
+                                                      <input
+                                                        onChange={handlePriceChange}
+                                                        value={productVariantPrice.price}
+                                                        className="form-control"
+                                                        type="text"
+                                                      />
+                                                    </td>
+                                                    <td>
+                                                      <input
+                                                        onChange={handleStockChange}
+                                                        value={productVariantPrice.stock}
+                                                        className="form-control"
+                                                        type="text"
+                                                      />
+                                                    </td>
+                                                  </tr>
+                                                );
+                                              })
+                                            
                                         }
                                         </tbody>
                                     </table>
